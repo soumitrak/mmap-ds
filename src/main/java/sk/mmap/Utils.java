@@ -40,6 +40,7 @@ public class Utils {
     }
 
     public static int getIntBufferLength(int capacity) {
+        // TODO: Handle overflow
         return capacity * Constants.SIZE_OF_INT;
     }
 
@@ -59,8 +60,9 @@ public class Utils {
         return capacity * Constants.SIZE_OF_CHAR;
     }
 
-    // Just double the capacity everytime any container is full.
+    // Just double the capacity every time any container is full.
     public static int getNextCapacity(int capacity) {
+        // TODO: Handle overflow
         return capacity * 2;
     }
 }

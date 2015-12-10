@@ -32,19 +32,7 @@ public class MArrayListITest {
 
     @Test
     public void testMappedByteBuffer() {
-        Set<StandardOpenOption> options = new TreeSet<StandardOpenOption>();
-        options.add(StandardOpenOption.CREATE);
-        options.add(StandardOpenOption.TRUNCATE_EXISTING);
-        options.add(StandardOpenOption.READ);
-        options.add(StandardOpenOption.WRITE);
-
-        FileSystemFileChannelProvider channelProvider =
-                new FileSystemFileChannelProvider("mmap.dat", options);
-
-        MappedByteBufferProvider byteBufferProvider =
-                new MappedByteBufferProvider(channelProvider, FileChannel.MapMode.READ_WRITE);
-
-        testByteBuffer(byteBufferProvider);
+        testByteBuffer(TestUtils.getMappedByteBufferProvider("mmap.dat"));
     }
 
     private void testByteBuffer(ByteBufferProvider byteBufferProvider) {
@@ -65,8 +53,8 @@ public class MArrayListITest {
         for (int i = 0; i < totalCapacity; i++) {
             int j = random.nextInt();
             // Hash.update(pre, j);
-            list.put(j);
-            // list.put(i);
+            list.add(j);
+            // list.add(i);
         }
 
         String iHash = Hash.hash(pre);

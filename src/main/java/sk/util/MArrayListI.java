@@ -2,14 +2,12 @@ package sk.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sk.mmap.Allocator;
-import sk.mmap.Constants;
-import sk.mmap.Utils;
+import sk.mmap.*;
 
 import java.nio.IntBuffer;
 
 // Memory mapped array list of int
-public class MArrayListI {
+public class MArrayListI implements AllocObject, MObject {
     private static final Logger logger = LoggerFactory.getLogger(MArrayListI.class);
 
     private int _size = 0;
@@ -31,7 +29,7 @@ public class MArrayListI {
         }
     }
 
-    public void put(int i) {
+    public void add(int i) {
         if (!_buffer.hasRemaining())
             resize();
 
@@ -60,7 +58,8 @@ public class MArrayListI {
         _buffer = newBuffer;
     }
 
-    private void resize() {
+    private MArrayListI resize() {
+        // TODO: Account for overflow
         int newCapacity = Utils.getNextCapacity(_size);
         logger.debug("Buffer full, resizing capacity from {} to {}.", _size, newCapacity);
         long newHandle = _allocator.tryrealloc(_allocHandle, Utils.getIntBufferLength(newCapacity));
@@ -77,5 +76,7 @@ public class MArrayListI {
             _allocHandle = newHandle;
             _buffer = newBuffer;
         }
+
+        return this;
     }
 }

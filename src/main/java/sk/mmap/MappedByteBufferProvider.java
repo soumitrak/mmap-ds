@@ -28,8 +28,8 @@ public class MappedByteBufferProvider implements ByteBufferProvider {
         long newSize = currentSize + Constants.MMAP_BUFFER_SIZE;
 
         // TODO: Not sure if this is required.
-        // logger.info("Truncating file from {} to {} size.", currentSize, newSize);
-        // fileChannel.truncate(newSize);
+        logger.info("Truncating file from {} to {} size.", currentSize, newSize);
+        fileChannel.truncate(newSize);
 
         return fileChannel.map(mode, currentSize, Constants.MMAP_BUFFER_SIZE);
     }

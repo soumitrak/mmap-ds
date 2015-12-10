@@ -42,6 +42,14 @@ public class Hash {
         return digest;
     }
 
+    public static MessageDigest update(MessageDigest digest, char input) {
+        for (int i = 0; i < Constants.SIZE_OF_CHAR; i++) {
+            digest.update((byte) (input >> i));
+        }
+
+        return digest;
+    }
+
     public static MessageDigest update(MessageDigest digest, int input) {
         for (int i = 0; i < Constants.SIZE_OF_INT; i++) {
             digest.update((byte) (input >> i));

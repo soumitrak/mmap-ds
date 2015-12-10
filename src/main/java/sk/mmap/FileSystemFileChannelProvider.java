@@ -3,6 +3,7 @@ package sk.mmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
@@ -32,8 +33,8 @@ public class FileSystemFileChannelProvider implements FileChannelProvider {
             fileChannel = FileChannel.open(path, options);
 
             // TODO:
-            // new File(directory, file).deleteOnExit();
-            // logger.info("Deleting file {}/{} status {}", dirName, fileName, new File(dirName, fileName).delete());
+            // new File(fileName).deleteOnExit();
+            logger.info("Deleting file {} status {}", fileName, new File(fileName).delete());
         }
 
         return fileChannel;
