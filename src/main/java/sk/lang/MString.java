@@ -34,8 +34,6 @@ public class MString implements AllocObject, MObject, CharSequence, Comparable<M
         int len1 = length();
         int len2 = anotherString.length();
         int n = Math.min(len1, len2);
-        char v1[] = _buffer.array();
-        char v2[] = anotherString._buffer.array();
         int i = 0;
         int j = 0;
 
@@ -43,8 +41,8 @@ public class MString implements AllocObject, MObject, CharSequence, Comparable<M
             int k = i;
             int lim = n + i;
             while (k < lim) {
-                char c1 = v1[k];
-                char c2 = v2[k];
+                char c1 = charAt(k);
+                char c2 = anotherString.charAt(k);
                 if (c1 != c2) {
                     return c1 - c2;
                 }
@@ -52,8 +50,8 @@ public class MString implements AllocObject, MObject, CharSequence, Comparable<M
             }
         } else {
             while (n-- != 0) {
-                char c1 = v1[i++];
-                char c2 = v2[j++];
+                char c1 = charAt(i++);
+                char c2 = anotherString.charAt(j++);
                 if (c1 != c2) {
                     return c1 - c2;
                 }
