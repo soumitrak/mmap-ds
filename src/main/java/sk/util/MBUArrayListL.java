@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 // Memory mapped bounded array list of long - unsafe
-public final class MBArrayListLU {
-    private static final Logger logger = LoggerFactory.getLogger(MBArrayListLU.class);
+public final class MBUArrayListL {
+    private static final Logger logger = LoggerFactory.getLogger(MBUArrayListL.class);
 
     private final int finalCapacity;
     private final long handle;
@@ -19,7 +19,7 @@ public final class MBArrayListLU {
 
     private int size = 0;
 
-    public MBArrayListLU
+    public MBUArrayListL
             (final IUnsafeAllocator allocator,
              final int finalCapacity) {
         this.finalCapacity = finalCapacity;
@@ -95,6 +95,7 @@ public final class MBArrayListLU {
     /**
      * It traverses the complete buffer, it is upto consumer to ensure that the
      * whole buffer was written with valid data, else unexpected thing may happen
+     *
      * @param allocator
      * @param handle
      * @param action

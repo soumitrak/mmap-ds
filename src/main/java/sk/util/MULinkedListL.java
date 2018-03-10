@@ -6,19 +6,19 @@ import sk.mmap.Utils;
 
 import java.nio.ByteBuffer;
 
-// Memory mapped linked list of pointers - Unsafe
-public class MLinkedListPU {
+// Memory mapped linked list of Long - Unsafe
+public class MULinkedListL {
     private static class Node {
-        // Pointer to any object
-        private static int P_SIZE = Constants.SIZE_OF_LONG;
-        private static int P_OFFSET = 0;
+        // Long value
+        private static int L_SIZE = Constants.SIZE_OF_LONG;
+        private static int L_OFFSET = 0;
 
         // Pointer to next Node
         private static int NP_SIZE = Constants.SIZE_OF_LONG;
-        private static int NP_OFFSET = P_OFFSET + P_SIZE;
+        private static int NP_OFFSET = L_OFFSET + L_SIZE;
 
         private static int sizeof() {
-            return P_SIZE + NP_SIZE;
+            return L_SIZE + NP_SIZE;
         }
 
         private static long create
@@ -28,7 +28,7 @@ public class MLinkedListPU {
             final long handle = allocator.alloc(sizeof());
             final int bufferOffset = Utils.getBufferIndex(handle);
             allocator.getByteBuffer(handle)
-                    .putLong(bufferOffset + P_OFFSET, p)
+                    .putLong(bufferOffset + L_OFFSET, p)
                     .putLong(bufferOffset + NP_OFFSET, np);
             return handle;
         }
@@ -42,11 +42,11 @@ public class MLinkedListPU {
             return handle;
         }
 
-        private static long getP
+        private static long getL
                 (final IUnsafeAllocator allocator,
                  final long handle) {
             return allocator.getByteBuffer(handle)
-                    .getLong(Utils.getBufferIndex(handle) + P_OFFSET);
+                    .getLong(Utils.getBufferIndex(handle) + L_OFFSET);
         }
 
         private static long getNext
@@ -79,11 +79,10 @@ public class MLinkedListPU {
         return list;
     }
 
-    // p is the handle to object
     public static long add
-    (final IUnsafeAllocator allocator,
-     final long list,
-     final long p) {
+            (final IUnsafeAllocator allocator,
+             final long list,
+             final long p) {
         final ByteBuffer listBuffer = allocator.getByteBuffer(list);
         final int listBufferOffset = Utils.getBufferIndex(list);
 
@@ -129,13 +128,13 @@ public class MLinkedListPU {
         return next;
     }
 
-    public static long getP
+    public static long getL
             (final IUnsafeAllocator allocator,
              final long node) {
         long p = Constants.NULL;
 
         if (node != Constants.NULL) {
-            p = Node.getP(allocator, node);
+            p = Node.getL(allocator, node);
         }
 
         return p;

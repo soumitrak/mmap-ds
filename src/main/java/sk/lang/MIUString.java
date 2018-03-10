@@ -7,7 +7,7 @@ import sk.mmap.Utils;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
-public final class MIStringU {
+public final class MIUString {
 
     private static CharBuffer getCharBuffer
             (final IUnsafeAllocator allocator, final long handle) {
