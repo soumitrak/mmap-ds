@@ -21,6 +21,10 @@ public class MArrayListI implements AllocObject, MObject {
         _buffer = allocator.getIntBuffer(_allocHandle);
     }
 
+    public long handle() {
+        return _allocHandle;
+    }
+
     public void delete() {
         if (_buffer != null) {
             _buffer = null;

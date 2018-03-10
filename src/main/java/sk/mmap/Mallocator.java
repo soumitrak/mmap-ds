@@ -3,36 +3,35 @@ package sk.mmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.*;
 
-public class Mallocator implements Allocator {
+public class Mallocator extends MIAllocator implements Allocator {
     private static final Logger logger = LoggerFactory.getLogger(Mallocator.class);
 
     private long _freeListHead = Constants.NULL;
 
-    private final ByteBufferProvider byteBufferProvider;
+    // private final ByteBufferProvider byteBufferProvider;
 
-    private final ByteBuffer[] arenas =
-            new MappedByteBuffer[Constants.MMAP_BUFFER_COUNT];
+//    private final ByteBuffer[] arenas =
+//            new MappedByteBuffer[Constants.MMAP_ARENA_COUNT];
 
-    public Mallocator(ByteBufferProvider byteBufferProvider) {
-        this.byteBufferProvider = byteBufferProvider;
-    }
-
-    public void close() {
-        byteBufferProvider.close();
+    public Mallocator(final ByteBufferProvider byteBufferProvider) {
+        super(byteBufferProvider);
     }
 
     private void writeHeaderSizes(ByteBuffer buffer, int offset, int size, int alignedSize) {
+        if (alignedSize <= 0)
+            throw new RuntimeException("alignedSize is " + alignedSize);
+
         // Write allocated raw buffer size.
         buffer.putInt(offset + Constants.ALLOC_BUFFER_ALIGN_SIZE, alignedSize);
 
         // Write asked buffer size, consumer of this buffer is not allowed to
         // read/write past asked bytes. Even though there may be some space left.
         buffer.putInt(offset + Constants.ALLOC_BUFFER_ASK_SIZE, size);
-
     }
+
+    // TODO: Implement first fit or best fit
 
     private long allocFromFreeList(int size, int alignedSize) {
         long ptr = _freeListHead;
@@ -66,7 +65,7 @@ public class Mallocator implements Allocator {
 
                 // Allocate this buffer, but preserve the original size.
                 writeHeaderSizes(rawBuffer, 0, size, oldAlignedSize);
-
+                logger.debug("Allocated from free list size {} aligned size {}.", size, alignedSize);
                 break;
             }
 
@@ -76,28 +75,13 @@ public class Mallocator implements Allocator {
         return ptr;
     }
 
-    private ByteBuffer getArena(int index) throws OutOfMemoryError {
-        ByteBuffer arena = arenas[index];
-        if (arena == null) {
-            try {
-                arena = byteBufferProvider.getNextBuffer();
-                arenas[index] = arena;
-            } catch (IOException e) {
-                // logger.error("mmap failed: {}", e.printStackTrace());
-                throw new OutOfMemoryError(e.getMessage());
-            }
-        }
-
-        return arena;
-    }
-
-    public long alloc(int size) throws OutOfMemoryError {
+    public long alloc(final int size) throws OutOfMemoryError {
         if (size <= 0)
             throw new OutOfMemoryError("Trying to alloc " + size + " bytes.");
 
         int alignedSize = Utils.getAllocSize(size);
 
-        logger.debug("Trying to alloc size {} aligned size {}.", size, alignedSize);
+        // logger.debug("Trying to alloc size {} aligned size {}.", size, alignedSize);
 
         long freeHandle = allocFromFreeList(size, alignedSize);
         if (freeHandle != Constants.NULL)
@@ -105,8 +89,15 @@ public class Mallocator implements Allocator {
 
         // Not found in free list.
         for (int i = 0; i < arenas.length; i++) {
-            ByteBuffer buffer = getArena(i);
+            ByteBuffer buffer = getOrAllocArena(i);
 
+            // Don't fill the buffer to exactly 2G size, otherwise Buffer.limit to 2G + 1 becomes negative and it fails.
+            /*
+                Exception in thread "main" java.lang.IllegalArgumentException
+	            at java.nio.Buffer.limit(Buffer.java:275)
+	            at sk.mmap.Mallocator.getRawBuffer(Mallocator.java:245)
+	            at sk.mmap.Mallocator.getByteBuffer(Mallocator.java:256)
+             */
             if (alignedSize <= buffer.remaining()) {
                 // TODO: Put some magic bytes to check if it is a valid allocated buffer
                 //       to check for invalid free/getBuffer.
@@ -152,7 +143,7 @@ public class Mallocator implements Allocator {
             rawBuffer.putInt(Constants.ALLOC_BUFFER_ASK_SIZE, size);
             return handle;
         } else {
-            int arrayIndex = Utils.getArrayBufferIndex(handle);
+            int arrayIndex = Utils.getArenaIndex(handle);
             int index = Utils.getBufferIndex(handle);
 
             ByteBuffer buffer = arenas[arrayIndex];
@@ -214,34 +205,28 @@ public class Mallocator implements Allocator {
     }
 
     private ByteBuffer getRawBuffer(long handle) throws OutOfMemoryError {
-        if (handle < 0)
-            throw new OutOfMemoryError("Illegal handle " + handle);
-
-        int arrayIndex = Utils.getArrayBufferIndex(handle);
+        final ByteBuffer arena = getArena(handle);
         int index = Utils.getBufferIndex(handle);
-        if (arrayIndex < 0 || arrayIndex >= Constants.MMAP_BUFFER_COUNT) {
-            throw new OutOfMemoryError("Array buffer index is out of bounds " + arrayIndex);
+
+        if (index < 0 || index >= arena.capacity()) {
+            throw new OutOfMemoryError("Buffer index is out of bounds " + index + ", capacity is " + arena.capacity());
         }
 
-        ByteBuffer buffer = arenas[arrayIndex];
-        if (buffer == null) {
-            throw new OutOfMemoryError("Array " + arrayIndex + " is not allocated.");
-        }
+        // Set the arena to its free location after slice.
+        int current = arena.position();
+        arena.position(index);
+        ByteBuffer allocatedBuffer = arena.slice();
+        arena.position(current);
 
-        if (index < 0 || index >= buffer.capacity()) {
-            throw new OutOfMemoryError("Buffer index is out of bounds " + index);
-        }
-
-        // Set the buffer to its free location after slice.
-        int current = buffer.position();
-        buffer.position(index);
-        ByteBuffer allocatedBuffer = buffer.slice();
-        buffer.position(current);
-
-        // Set position and limit of the allocated buffer.
+        // Set position and limit of the allocated arena.
         // TODO: Is there a way to set capacity?
-        int limit = buffer.getInt(index + Constants.SIZE_OF_LONG);
-        allocatedBuffer.limit(limit);
+        int limit = arena.getInt(index + Constants.SIZE_OF_LONG);
+        try {
+            allocatedBuffer.limit(limit);
+        } catch (java.lang.IllegalArgumentException e) {
+            logger.error("Error during setting allocatedBuffer limit to " + limit + " index " + index + " arenaIndex " + Utils.getArenaIndex(handle));
+            throw e;
+        }
         // allocatedBuffer.position(Constants.ALLOC_BUFFER_HEADER_LENGTH);
 
         return allocatedBuffer;
@@ -260,7 +245,7 @@ public class Mallocator implements Allocator {
         return tmp;
     }
 
-    public ShortBuffer getShortBuffer(long handle) throws OutOfMemoryError {
+    /*public ShortBuffer getShortBuffer(long handle) throws OutOfMemoryError {
         return getByteBuffer(handle).asShortBuffer();
     }
 
@@ -282,10 +267,10 @@ public class Mallocator implements Allocator {
 
     public CharBuffer getCharBuffer(long handle) throws OutOfMemoryError {
         return getByteBuffer(handle).asCharBuffer();
-    }
+    }*/
 
-    public Allocator debug() {
-        byteBufferProvider.debug();
+    public void debug() {
+        super.debug();
 
         // Print each buffer.
         for (int i = 0; i < arenas.length; i++) {
@@ -303,7 +288,7 @@ public class Mallocator implements Allocator {
             logger.debug("Free list is:");
             long ptr = _freeListHead;
             while (ptr != Constants.NULL) {
-                int arrayIndex = Utils.getArrayBufferIndex(ptr);
+                int arrayIndex = Utils.getArenaIndex(ptr);
                 int index = Utils.getBufferIndex(ptr);
                 ByteBuffer rawBuffer = getRawBuffer(ptr);
                 int size = rawBuffer.getInt(Constants.ALLOC_BUFFER_ALIGN_SIZE);
@@ -314,7 +299,5 @@ public class Mallocator implements Allocator {
         } else {
             logger.debug("Free list is empty.");
         }
-
-        return this;
     }
 }

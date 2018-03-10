@@ -54,7 +54,6 @@ public class MArrayListITest {
             int j = random.nextInt();
             // Hash.update(pre, j);
             list.add(j);
-            // list.add(i);
         }
 
         String iHash = Hash.hash(pre);
@@ -75,7 +74,7 @@ public class MArrayListITest {
         list.delete();
         mallocator.debug();
         mallocator.close();
-        logger.info("Done testing MListi.");
+        logger.info("Done testing MArrayListI.");
 
         // testArrayList(totalCapacity);
     }

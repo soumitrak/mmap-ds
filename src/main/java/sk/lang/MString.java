@@ -3,18 +3,46 @@ package sk.lang;
 import sk.mmap.AllocObject;
 import sk.mmap.Allocator;
 import sk.mmap.MObject;
+import sk.mmap.Utils;
 
 import java.nio.CharBuffer;
+
+// TODO: Find a way to represent empty string.
 
 public class MString implements AllocObject, MObject, CharSequence, Comparable<MString> {
     private final Allocator _allocator;
     private final long _allocHandle;
     private final CharBuffer _buffer;
 
-    public MString(Allocator allocator, long handle) {
+    public MString(final Allocator allocator, final long handle) {
         _allocator = allocator;
         _allocHandle = handle;
         _buffer = allocator.getCharBuffer(_allocHandle).asReadOnlyBuffer();
+    }
+
+    public long handle() {
+        return _allocHandle;
+    }
+
+    public static long create(final Allocator allocator, final CharSequence str) {
+        final long handle = allocator.alloc(Utils.getCharBufferLength(str.length()));
+        final CharBuffer buffer = allocator.getCharBuffer(handle);
+        for (int i = 0; i < str.length(); i++) {
+            buffer.put(str.charAt(i));
+        }
+        return handle;
+    }
+
+    public static long create(final Allocator allocator, final char c) {
+        final long handle = allocator.alloc(Utils.getCharBufferLength(1));
+        allocator.getCharBuffer(handle).put(c);
+        return handle;
+    }
+
+    public static CharBuffer getReadOnlyBuffer
+            (final Allocator allocator,
+             final long handle) {
+        return allocator.getCharBuffer(handle).asReadOnlyBuffer();
     }
 
     public void delete() {

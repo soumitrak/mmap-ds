@@ -20,6 +20,10 @@ public class MStringBuilder implements AllocObject, MObject, CharSequence {
         _buffer = allocator.getCharBuffer(_allocHandle);
     }
 
+    public long handle() {
+        return _allocHandle;
+    }
+
     public int length() {
         return _length;
     }
@@ -153,8 +157,8 @@ public class MStringBuilder implements AllocObject, MObject, CharSequence {
     }
 
     public MString toMString() {
-        long handle = _allocator.alloc(Utils.getCharBufferLength(length()));
-        CharBuffer buffer = _allocator.getCharBuffer(handle);
+        final long handle = _allocator.alloc(Utils.getCharBufferLength(length()));
+        final CharBuffer buffer = _allocator.getCharBuffer(handle);
         buffer.put((CharBuffer) _buffer.flip());
         return new MString(_allocator, handle);
     }

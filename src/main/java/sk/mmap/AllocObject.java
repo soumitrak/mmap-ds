@@ -1,5 +1,5 @@
 package sk.mmap;
 
-public interface AllocObject {
+public interface AllocObject extends IAllocObject {
     void delete();
 }

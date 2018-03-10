@@ -17,8 +17,8 @@ public final class Constants {
     // mmap buffer size
     public static final long MMAP_BUFFER_SIZE = Integer.MAX_VALUE; // 1024 * 1024 * 1024;
 
-    // Maximum number of mmap'ed buffers per file.
-    public static final int MMAP_BUFFER_COUNT = 128;
+    // Maximum number of mmap'ed arenas per file.
+    public static final int MMAP_ARENA_COUNT = 128;
 
     // Byte length of header in allocated buffer by Allocator.
     // 24 bits unused

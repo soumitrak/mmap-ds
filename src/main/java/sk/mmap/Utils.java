@@ -19,16 +19,16 @@ public class Utils {
     // 8 bits of index into mmap'ed array of buffers
     // +
     // 32 bits of index into raw mmap'ed buffer
-    public static int getArrayBufferIndex(long handle) {
-        return (int) (handle >>> 32 & 0xf);
+    public static int getArenaIndex(long handle) {
+        return (int) (handle >>> 32 & 0xff);
     }
 
     public static int getBufferIndex(long handle) {
         return (int) handle;
     }
 
-    public static long getHandle(int arrayBufferIndex, int bufferIndex) {
-        return ((long) arrayBufferIndex << 32) | (long) bufferIndex;
+    public static long getHandle(int arenaIndex, int bufferIndex) {
+        return ((long) arenaIndex << 32) | (long) bufferIndex;
     }
 
     public static int getByteBufferLength(int capacity) {
@@ -44,19 +44,19 @@ public class Utils {
         return capacity * Constants.SIZE_OF_INT;
     }
 
-    public static int getLongBufferLength(int capacity) {
+    public static int getLongBufferLength(final int capacity) {
         return capacity * Constants.SIZE_OF_LONG;
     }
 
-    public static int getFloatBufferLength(int capacity) {
+    public static int getFloatBufferLength(final int capacity) {
         return capacity * Constants.SIZE_OF_FLOAT;
     }
 
-    public static int getDoubleBufferLength(int capacity) {
+    public static int getDoubleBufferLength(final int capacity) {
         return capacity * Constants.SIZE_OF_DOUBLE;
     }
 
-    public static int getCharBufferLength(int capacity) {
+    public static int getCharBufferLength(final int capacity) {
         return capacity * Constants.SIZE_OF_CHAR;
     }
 

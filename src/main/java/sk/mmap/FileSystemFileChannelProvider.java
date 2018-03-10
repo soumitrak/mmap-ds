@@ -28,13 +28,14 @@ public class FileSystemFileChannelProvider implements FileChannelProvider {
 
     public FileChannel getFileChannel() throws IOException {
         if (fileChannel == null) {
+            logger.debug("Creating file channel of file {}", fileName);
             Path path = FileSystems.getDefault().getPath(fileName);
             // Path path = FileSystems.getDefault().getPath("/dev/zero");
             fileChannel = FileChannel.open(path, options);
 
             // TODO:
             // new File(fileName).deleteOnExit();
-            logger.info("Deleting file {} status {}", fileName, new File(fileName).delete());
+            // logger.info("Deleting file {} status {}", fileName, new File(fileName).delete());
         }
 
         return fileChannel;
