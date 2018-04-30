@@ -79,6 +79,10 @@ public final class MBUArrayListL {
     }
 
     public long get(final int index) {
+        if (index >= finalCapacity) {
+            throw new IndexOutOfBoundsException("Size is " + size + " but index is " + index);
+        }
+
         return buffer.getLong(baseIndex + index * Constants.SIZE_OF_LONG);
     }
 
