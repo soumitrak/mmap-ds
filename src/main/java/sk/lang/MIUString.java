@@ -9,6 +9,8 @@ import java.nio.CharBuffer;
 
 public final class MIUString {
 
+    public static IUnsafeAllocator defaultAllocator;
+
     private static CharBuffer getCharBuffer
             (final IUnsafeAllocator allocator, final long handle) {
         final ByteBuffer bb = allocator.getByteBuffer(handle);
@@ -54,5 +56,15 @@ public final class MIUString {
             (final IUnsafeAllocator allocator,
              final long handle) {
         return getCharBuffer(allocator, handle).asReadOnlyBuffer();
+    }
+
+    public static long create
+            (final CharSequence str) {
+        return create(defaultAllocator, str);
+    }
+
+    public static CharBuffer getReadOnlyBuffer
+            (final long handle) {
+        return getReadOnlyBuffer(defaultAllocator, handle);
     }
 }
