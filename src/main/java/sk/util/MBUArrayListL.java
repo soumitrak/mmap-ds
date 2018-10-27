@@ -79,7 +79,7 @@ public final class MBUArrayListL {
     }
 
     public long get(final int index) {
-        if (index >= finalCapacity) {
+        if (index >= finalCapacity || index < 0) {
             throw new IndexOutOfBoundsException("Size is " + size + " but index is " + index);
         }
 
