@@ -23,13 +23,22 @@ public class MULinkedListL {
 
         private static long create
                 (final IUnsafeAllocator allocator,
-                 final long p,
+                 final long l,
                  final long np) {
             final long handle = allocator.alloc(sizeof());
             final int bufferOffset = Utils.getBufferIndex(handle);
             allocator.getByteBuffer(handle)
-                    .putLong(bufferOffset + L_OFFSET, p)
+                    .putLong(bufferOffset + L_OFFSET, l)
                     .putLong(bufferOffset + NP_OFFSET, np);
+            return handle;
+        }
+
+        private static long setL
+                (final IUnsafeAllocator allocator,
+                 final long handle,
+                 final long l) {
+            allocator.getByteBuffer(handle)
+                    .putLong(Utils.getBufferIndex(handle) + L_OFFSET, l);
             return handle;
         }
 
@@ -65,17 +74,39 @@ public class MULinkedListL {
     private static int LAST_SIZE = Constants.SIZE_OF_LONG;
     private static int LAST_OFFSET = FIRST_OFFSET + FIRST_SIZE;
 
+    // int ic - initial capacity, allocate space for 'ic' nodes during creation of list itself
+    private static int IC_SIZE = Constants.SIZE_OF_INT;
+    private static int IC_OFFSET = LAST_OFFSET + LAST_SIZE;
+
+    // int uc - used capacity, used capacity out of initial capacity.
+    private static int UC_SIZE = Constants.SIZE_OF_INT;
+    private static int UC_OFFSET = IC_OFFSET + IC_SIZE;
+
     private static int sizeof() {
-        return FIRST_SIZE + LAST_SIZE;
+        return FIRST_SIZE + LAST_SIZE + IC_SIZE + UC_SIZE;
     }
 
     public static long create
             (final IUnsafeAllocator allocator) {
+        return create(allocator, 0);
+    }
+
+    public static long create
+            (final IUnsafeAllocator allocator,
+             final int initialCapacity) {
+        final long first = initialCapacity > 0 ?
+                allocator.alloc(initialCapacity * Node.sizeof()) :
+                Constants.NULL;
+
         final long list = allocator.alloc(sizeof());
         final int bufferOffset = Utils.getBufferIndex(list);
+
         allocator.getByteBuffer(list)
-                .putLong(bufferOffset + FIRST_OFFSET, Constants.NULL)
-                .putLong(bufferOffset + LAST_OFFSET, Constants.NULL);
+                .putLong(bufferOffset + FIRST_OFFSET, first)
+                .putLong(bufferOffset + LAST_OFFSET, Constants.NULL)
+                .putInt(bufferOffset + IC_OFFSET, initialCapacity)
+                .putInt(bufferOffset + UC_OFFSET, 0);
+
         return list;
     }
 
@@ -86,22 +117,48 @@ public class MULinkedListL {
         final ByteBuffer listBuffer = allocator.getByteBuffer(list);
         final int listBufferOffset = Utils.getBufferIndex(list);
 
-        // Create a new node
-        final long tmp = Node.create(allocator, p, Constants.NULL);
+        final int ic = listBuffer.getInt(listBufferOffset + IC_OFFSET);
+        int uc = listBuffer.getInt(listBufferOffset + UC_OFFSET);
 
-        // If list is not empty, put the new node as next of last node
-        final long last = listBuffer.getLong(listBufferOffset + LAST_OFFSET);
-        if (last != Constants.NULL) {
-            Node.setNext(allocator, last, tmp);
-        }
+        if (uc == ic) {
+            // Create a new node
+            final long tmp = Node.create(allocator, p, Constants.NULL);
 
-        // New node becomes the last node
-        listBuffer.putLong(listBufferOffset + LAST_OFFSET, tmp);
+            // If list is not empty, put the new node as next of last node
+            final long last = listBuffer.getLong(listBufferOffset + LAST_OFFSET);
+            if (last != Constants.NULL) {
+                Node.setNext(allocator, last, tmp);
+            }
 
-        // If list is empty, set the first node to last one
-        final long first = listBuffer.getLong(listBufferOffset + FIRST_OFFSET);
-        if (first == Constants.NULL) {
-            listBuffer.putLong(listBufferOffset + FIRST_OFFSET, tmp);
+            // New node becomes the last node
+            listBuffer.putLong(listBufferOffset + LAST_OFFSET, tmp);
+
+            // If list is empty, set the first node to last one
+            final long first = listBuffer.getLong(listBufferOffset + FIRST_OFFSET);
+            if (first == Constants.NULL) {
+                listBuffer.putLong(listBufferOffset + FIRST_OFFSET, tmp);
+            }
+        } else {
+            final long first = listBuffer.getLong(listBufferOffset + FIRST_OFFSET);
+            final int arenaIndex = Utils.getArenaIndex(first);
+            final int bufferIndex = Utils.getBufferIndex(first);
+
+            // Get the pointer to node in the initialCapacity area
+            final long node = Utils.getHandle(arenaIndex, bufferIndex + uc * Node.sizeof());
+            Node.setL(allocator, node, p);
+            Node.setNext(allocator, node, Constants.NULL);
+
+            // If list is not empty, put the new node as next of last node
+            final long last = listBuffer.getLong(listBufferOffset + LAST_OFFSET);
+            if (last != Constants.NULL) {
+                Node.setNext(allocator, last, node);
+            }
+
+            // New node becomes the last node
+            listBuffer.putLong(listBufferOffset + LAST_OFFSET, node);
+
+            // Increment the used capacity counter
+            listBuffer.putInt(listBufferOffset + UC_OFFSET, ++uc);
         }
 
         return list;
@@ -112,8 +169,19 @@ public class MULinkedListL {
              final long list) {
         if (list == Constants.NULL)
             throw new NullPointerException("List is NULL");
-        return allocator.getByteBuffer(list)
-                .getLong(Utils.getBufferIndex(list) + FIRST_OFFSET);
+
+        final ByteBuffer listBuffer = allocator.getByteBuffer(list);
+        final int listBufferOffset = Utils.getBufferIndex(list);
+
+        long first = listBuffer.getLong(listBufferOffset + FIRST_OFFSET);
+
+        final int ic = listBuffer.getInt(listBufferOffset + IC_OFFSET);
+        final int uc = listBuffer.getInt(listBufferOffset + UC_OFFSET);
+        if (ic > 0 && uc == 0) {
+            first = Constants.NULL;
+        }
+
+        return first;
     }
 
     public static long getNext
