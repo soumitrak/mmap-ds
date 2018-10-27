@@ -6,6 +6,8 @@ package sk.util;
  * @(#) JenkinsHash.java 2011-08-18
  */
 
+import java.util.Random;
+
 /**
  * This is an implementation of Bob Jenkins' hash. It can produce both 32-bit
  * and 64-bit hash values.
@@ -39,10 +41,23 @@ public class JenkinsHash {
                 (byte) value};
     }
 
+    public static long hash64l(final long value) {
+        return hash64(ltoba(value));
+    }
+
     public static long hash64(final long value) {
         return Math.abs(hash64(ltoba(value)));
     }
 
+    public static void main(String[] args) {
+        final Random r = new Random();
+        for (int i = 0; i < 1000000000; i++) {
+            long h = hash64(r.nextLong());
+            if (h < 0) {
+                System.out.println("Hash is negative " + h);
+            }
+        }
+    }
     public static long hash64(final int value) {
         return Math.abs(hash64(itoba(value)));
     }
